@@ -16,8 +16,8 @@ Two concrete questions drove these experiments:
 
 1. **Can LoRA efficiently adapt a pretrained model to follow instructions over very long contexts?**
    Standard fine-tuning at 8k+ token sequences is memory-prohibitive on a single GPU.
-   LoRA (rank 16, alpha 32, targeting q_proj + v_proj) combined with 4-bit NF4 quantization
-   makes this tractable on a T4/A100.
+   LoRA (rank 16, alpha 32, targeting q_proj + v_proj; 1.7M trainable parameters on
+   Llama-3.2-1B) combined with 4-bit NF4 quantization makes this tractable on a T4/A100.
 
 2. **Where does a long-context model actually fail?**
    The needle-in-haystack protocol isolates positional retrieval from reasoning,
@@ -41,6 +41,21 @@ python needle_in_haystack/eval_needle.py \
     --context_lengths 1024 2048 4096 8192 \
     --output_dir results/
 ```
+
+## Tests
+
+```bash
+pip install -r requirements.txt
+python -m pytest -q        # ~15 s on CPU, no GPU or Hub access needed
+```
+
+The tests build a tiny Llama-architecture model and tokenizer locally and
+check what each script feeds the model: only response tokens and the closing
+EOS are supervised, padding is masked while the real EOS keeps its label,
+over-length examples lose context rather than the answer, the needle lands at
+the requested depth, trials in a cell use distinct haystacks, and the scorer
+accepts an answer only when the expected passcode is the one it names. Both
+scripts also run end to end on that model.
 
 ## References
 
